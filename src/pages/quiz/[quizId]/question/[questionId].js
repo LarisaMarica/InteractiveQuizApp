@@ -1,56 +1,65 @@
 import { useRouter } from 'next/router';
 import Link from 'next/link';
 import { useState, useEffect } from 'react';
-import Question from '@/models/question';
-
-// Array of questions
-const questions = [
-  new Question(
-    1,
-    'Care este cel mai lung fluviu din Europa?',
-    ['Dunarea', 'Volga', 'Tisa', 'Tamisa'],
-    'Volga',
-  ),
-  new Question(
-    2,
-    'Cine a pictat celebrul tablou “Mona Lisa”?',
-    ['Leonardo da Vinci', 'Vincent van Gogh', 'Pablo Picasso', 'Claude Monet'],
-    'Leonardo da Vinci',
-  ),
-  new Question(
-    3,
-    'Cine a fost primul președinte al Statelor Unite ale Americii?',
-    ['George Washington', 'Thomas Jefferson', 'John Adams', 'James Madison'],
-    'George Washington',
-  ),
-];
 
 export default function QuestionPage() {
   const router = useRouter();
-  const { questionId } = router.query;
+  const { quizId, questionId } = router.query;
 
-  // Find the question using the questionId
-  const question = questions.find((q) => q.id === parseInt(questionId));
-
+  const [questions, setQuestions] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [selectedAnswer, setSelectedAnswer] = useState(null);
   const [isAnswered, setIsAnswered] = useState(false);
+  const [score, setScore] = useState(0);
+
+  useEffect(() => {
+    const fetchQuestions = async () => {
+      try {
+        const res = await fetch(`/api/questions`);
+        if (!res.ok) throw new Error('Eroare la încărcarea întrebărilor');
+
+        const data = await res.json();
+        const quiz = data.categories
+          .flatMap((category) => category.quizzes)
+          .find((quiz) => quiz.quiz_id === parseInt(quizId));
+
+        if (quiz) {
+          setQuestions(quiz.questions);
+        } else {
+          setError('Nu am găsit testul');
+        }
+      } catch (err) {
+        setError('Nu s-au putut încărca întrebările');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (quizId) fetchQuestions();
+  }, [quizId]);
 
   useEffect(() => {
     setSelectedAnswer(null);
     setIsAnswered(false);
   }, [questionId]);
 
-  // Log the question object to verify if options is an array
-  console.log('Current question:', question);
+  if (loading) return <div>Se încarcă...</div>;
+  if (error) return <div>Eroare: {error}</div>;
 
+  const question = questions.find((q) => q.id === parseInt(questionId));
   if (!question) return <p>Întrebarea nu a fost găsită</p>;
 
   const handleAnswerClick = (option) => {
     setSelectedAnswer(option);
     setIsAnswered(true);
+    if (option === question.answer) {
+      setScore((prevScore) => prevScore + 1);
+    }
   };
 
   const isCorrect = selectedAnswer === question.answer;
+  const isLastQuestion = parseInt(questionId) >= questions.length;
 
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-r from-green-400 to-blue-500 text-white">
@@ -78,22 +87,38 @@ export default function QuestionPage() {
           ))}
         </ul>
 
-        {isAnswered ? (
+        {isAnswered && (
           <div>
             <p className="mb-4">
-              {isCorrect ? 'Răspuns corect! 🎉' : `Răspuns greșit! Răspunsul corect este: ${question.answer}`}
+              {isCorrect
+                ? 'Răspuns corect! 🎉'
+                : `Răspuns greșit! Răspunsul corect este: ${question.answer}`}
             </p>
-            {parseInt(questionId) < questions.length ? (
-              <Link href={`/quiz/1/question/${parseInt(questionId) + 1}`}>
+
+            {!isLastQuestion ? (
+              <Link href={`/quiz/${quizId}/question/${parseInt(questionId) + 1}`}>
                 <button className="bg-blue-500 hover:bg-blue-700 text-white font-semibold py-3 px-6 rounded-lg transition duration-300">
                   Următoarea întrebare
                 </button>
               </Link>
             ) : (
-              <p>Ai terminat testul!</p>
+              <div>
+                <p className="mt-4">Ai terminat testul!</p>
+                <p className="mt-4">Scorul tău: {score}/{questions.length}</p>
+                <p className="mt-4">
+                  {questions.length === score
+                    ? 'Felicitări! Ai răspuns corect la toate întrebările! 👏'
+                    : 'Mai ai de lucru la aceste întrebări. 🤔'}
+                </p>
+                <Link href={`/`}>
+                  <button className="bg-blue-500 hover:bg-blue-700 text-white font-semibold py-3 px-6 rounded-lg transition duration-300">
+                    Înapoi acasă
+                  </button>
+                </Link>
+              </div>
             )}
           </div>
-        ) : null}
+        )}
       </div>
     </div>
   );
