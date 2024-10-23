@@ -13,6 +13,11 @@ export default function Home() {
               Categorii
             </Link>
           </li>
+          <li>
+            <Link href="/add-question" className="block bg-blue-500 hover:bg-blue-700 text-white font-semibold py-3 px-6 rounded-lg transition duration-300 text-center">
+              Adaugă Întrebare Nouă
+            </Link>
+          </li>
         </ul>
       </div>
     </div>

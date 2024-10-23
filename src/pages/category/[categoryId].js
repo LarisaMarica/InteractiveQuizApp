@@ -1,62 +1,47 @@
 import { useRouter } from 'next/router';
-import fs from 'fs';
-import path from 'path';
 import Link from 'next/link';
-import Quiz from '@/models/quiz';
-import Question from '@/models/question';
+import { useState, useEffect } from 'react';
 
-export async function getServerSideProps(context) {
-  const categoriesPath = path.join(process.cwd(), 'public', 'questions.json');
-  const jsonData = fs.readFileSync(categoriesPath, 'utf-8');
-  const categoriesJson = JSON.parse(jsonData);
+export default function CategoryPage() {
+  const router = useRouter();
+  const { categoryId } = router.query;
 
-  const categoryId = parseInt(context.params.categoryId); 
+  const [quizzes, setQuizzes] = useState([]);
+  const [categoryName, setCategoryName] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-  const category = categoriesJson.categories.find((category) => category.id === categoryId);
+  useEffect(() => {
+    const fetchCategoryData = async () => {
+      try {
+        const res = await fetch(`/api/questions`);
+        if (!res.ok) throw new Error('Eroare la încărcarea datelor');
 
-  if (!category) {
-    return {
-      notFound: true,
+        const data = await res.json();
+        const category = data.categories.find(
+          (cat) => cat.id === parseInt(categoryId)
+        );
+
+        if (category) {
+          setQuizzes(category.quizzes);
+          setCategoryName(category.name);
+        } else {
+          setError('Categoria nu a fost găsită');
+        }
+      } catch (err) {
+        setError('Nu s-au putut încărca testele');
+      } finally {
+        setLoading(false);
+      }
     };
-  }
 
-  const quizzes = category.quizzes.map((quiz) => {
-    const questions = quiz.questions.map((question) => new Question(
-      question.id,
-      question.question,
-      question.options,
-      question.answer
-    ));
+    if (categoryId) fetchCategoryData();
+  }, [categoryId]);
 
-    return new Quiz(quiz.quiz_id, questions, categoryId);
-  });
+  if (loading) return <div>Se încarcă...</div>;
+  if (error) return <div>Eroare: {error}</div>;
 
-  const serializedQuizzes = quizzes.map((quiz) => ({
-    id: quiz.id,
-    questions: quiz.questions.map((question) => ({
-      id: question.id,
-      question: question.question,
-      options: question.options,
-      answer: question.answer,
-    })),
-    categoryId: quiz.category,
-  }));
-
-  return {
-    props: {
-      quizzes: serializedQuizzes, 
-      categoryId,
-      categoryName: category.name,
-    },
-  };
-}
-
-
-
-export default function CategoryPage({ quizzes, categoryId, categoryName }) {
-  const categoryQuizzes = quizzes.filter((quiz) => quiz.categoryId === categoryId);
-
-  if (!categoryQuizzes.length) {
+  if (!quizzes.length) {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-r from-green-400 to-blue-500 text-white">
         <h1 className="text-4xl font-bold">Categoria nu a fost găsită!</h1>
@@ -68,15 +53,14 @@ export default function CategoryPage({ quizzes, categoryId, categoryName }) {
     <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-r from-green-400 to-blue-500 text-white">
       <div className="text-center p-10 bg-white rounded-lg shadow-lg text-gray-800 max-w-lg w-full">
         <h1 className="text-4xl font-bold mb-6">Teste pentru categoria {categoryName}</h1>
-        
         <ul className="flex flex-col space-y-4">
-          {categoryQuizzes.map((quiz) => (
-            <li key={quiz.id}>
+          {quizzes.map((quiz) => (
+            <li key={quiz.quiz_id}>
               <Link
-                href={`/quiz/${quiz.id}`}
+                href={`/quiz/${quiz.quiz_id}`}
                 className="block bg-blue-500 hover:bg-blue-700 text-white font-semibold py-3 px-6 rounded-lg transition duration-300 text-center"
               >
-                Test {quiz.id}
+                Test {quiz.quiz_id}
               </Link>
             </li>
           ))}
@@ -85,4 +69,3 @@ export default function CategoryPage({ quizzes, categoryId, categoryName }) {
     </div>
   );
 }
-
