@@ -1,29 +1,59 @@
-import fs from 'fs';  
-import path from 'path';  
-import Category from '@/models/category'; 
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 
-export const getServerSideProps = async () => {
-  const filePath = path.join(process.cwd(), 'public', 'questions.json');
-  
-  const jsonData = fs.readFileSync(filePath, 'utf-8');
-  const categoriesJson = JSON.parse(jsonData);
+export default function Categories() {
+  const [categories, setCategories] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-  const categories = categoriesJson.categories.map(category => new Category(category.id, category.name));
+  useEffect(() => {
+    fetch('/questions.json')
+      .then((res) => {
+        if (!res.ok) {
+          throw new Error('Eroare la obținerea datelor');
+        }
+        return res.json();
+      })
+      .then((data) => {
+        const serializedCategories = data.categories.map((category) => ({
+          id: category.id,
+          name: category.name,
+        }));
 
-  const serializedCategories = categories.map(category => ({
-    id: category.id,
-    name: category.name,
-  }));
+        // Check for user-added questions in localStorage
+        const storedQuestions = localStorage.getItem('questions');
+        if (storedQuestions) {
+          const userQuestions = JSON.parse(storedQuestions);
+          if (userQuestions.length > 0) {
+            const userQuestionsCategory = {
+              id: 'user-questions',
+              name: 'Întrebări utilizator',
+            };
+            setCategories([...serializedCategories, userQuestionsCategory]);
+          } else {
+            setCategories(serializedCategories);
+          }
+        } else {
+          setCategories(serializedCategories);
+        }
 
-  return {
-    props: {
-      categories: serializedCategories, 
-    },
-  };
-};
+        setLoading(false);
+      })
+      .catch((err) => {
+        console.error('A apărut o eroare:', err);
+        setError('Nu s-au putut încărca categoriile');
+        setLoading(false);
+      });
+  }, []);
 
-export default function Categories({ categories }) {
+  if (loading) {
+    return <div>Se încarcă...</div>;
+  }
+
+  if (error) {
+    return <div>Eroare: {error}</div>;
+  }
+
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-r from-green-400 to-blue-500 text-white">
       <div className="text-center p-10 bg-white rounded-lg shadow-lg text-gray-800 max-w-lg w-full">
