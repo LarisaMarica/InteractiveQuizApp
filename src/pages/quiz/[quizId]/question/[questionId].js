@@ -14,31 +14,29 @@ export default function QuestionPage() {
   const [score, setScore] = useState(0);
 
   useEffect(() => {
-    if (quizId) {
-      fetch(`/api/questions`)
-        .then((res) => {
-          if (!res.ok) {
-            throw new Error('Eroare la încărcarea întrebărilor');
-          }
-          return res.json();
-        })
-        .then((data) => {
-          const quiz = data.categories
-            .flatMap((category) => category.quizzes)
-            .find((quiz) => quiz.quiz_id === parseInt(quizId));
+    const fetchQuestions = async () => {
+      try {
+        const res = await fetch(`/api/questions`);
+        if (!res.ok) throw new Error('Eroare la încărcarea întrebărilor');
 
-          if (quiz) {
-            setQuestions(quiz.questions);
-          } else {
-            setError('Nu am găsit testul');
-          }
-          setLoading(false);
-        })
-        .catch((err) => {
-          setError('Nu s-au putut încărca întrebările');
-          setLoading(false);
-        });
-    }
+        const data = await res.json();
+        const quiz = data.categories
+          .flatMap((category) => category.quizzes)
+          .find((quiz) => quiz.quiz_id === parseInt(quizId));
+
+        if (quiz) {
+          setQuestions(quiz.questions);
+        } else {
+          setError('Nu am găsit testul');
+        }
+      } catch (err) {
+        setError('Nu s-au putut încărca întrebările');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (quizId) fetchQuestions();
   }, [quizId]);
 
   useEffect(() => {
@@ -46,13 +44,8 @@ export default function QuestionPage() {
     setIsAnswered(false);
   }, [questionId]);
 
-  if (loading) {
-    return <div>Se încarcă...</div>;
-  }
-
-  if (error) {
-    return <div>Eroare: {error}</div>;
-  }
+  if (loading) return <div>Se încarcă...</div>;
+  if (error) return <div>Eroare: {error}</div>;
 
   const question = questions.find((q) => q.id === parseInt(questionId));
   if (!question) return <p>Întrebarea nu a fost găsită</p>;
@@ -60,7 +53,6 @@ export default function QuestionPage() {
   const handleAnswerClick = (option) => {
     setSelectedAnswer(option);
     setIsAnswered(true);
-
     if (option === question.answer) {
       setScore((prevScore) => prevScore + 1);
     }
@@ -98,7 +90,9 @@ export default function QuestionPage() {
         {isAnswered && (
           <div>
             <p className="mb-4">
-              {isCorrect ? 'Răspuns corect! 🎉' : `Răspuns greșit! Răspunsul corect este: ${question.answer}`}
+              {isCorrect
+                ? 'Răspuns corect! 🎉'
+                : `Răspuns greșit! Răspunsul corect este: ${question.answer}`}
             </p>
 
             {!isLastQuestion ? (
@@ -108,14 +102,20 @@ export default function QuestionPage() {
                 </button>
               </Link>
             ) : (
-              <Link href={`/`}>
+              <div>
                 <p className="mt-4">Ai terminat testul!</p>
                 <p className="mt-4">Scorul tău: {score}/{questions.length}</p>
-                <p className="mt-4">{questions.length === score ? 'Felicitări! Ai răspuns corect la toate întrebările! 👏' : 'Mai ai de lucru la aceste întrebări. 🤔'}</p>
-                <button className="bg-blue-500 hover:bg-blue-700 text-white font-semibold py-3 px-6 rounded-lg transition duration-300">
-                  Înapoi acasă
-                </button>
-              </Link>
+                <p className="mt-4">
+                  {questions.length === score
+                    ? 'Felicitări! Ai răspuns corect la toate întrebările! 👏'
+                    : 'Mai ai de lucru la aceste întrebări. 🤔'}
+                </p>
+                <Link href={`/`}>
+                  <button className="bg-blue-500 hover:bg-blue-700 text-white font-semibold py-3 px-6 rounded-lg transition duration-300">
+                    Înapoi acasă
+                  </button>
+                </Link>
+              </div>
             )}
           </div>
         )}
