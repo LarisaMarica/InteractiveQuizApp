@@ -12,42 +12,34 @@ export default function CategoryPage() {
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    if (categoryId) {
-      fetch(`/api/questions`)
-        .then((res) => {
-          if (!res.ok) {
-            throw new Error('Eroare la încărcarea datelor');
-          }
-          return res.json();
-        })
-        .then((data) => {
-          const category = data.categories.find(
-            (cat) => cat.id === parseInt(categoryId)
-          );
+    const fetchCategoryData = async () => {
+      try {
+        const res = await fetch(`/api/questions`);
+        if (!res.ok) throw new Error('Eroare la încărcarea datelor');
 
-          if (category) {
-            setQuizzes(category.quizzes);
-            setCategoryName(category.name);
-            setError(null);
-          } else {
-            setError('Categoria nu a fost găsită');
-          }
-          setLoading(false);
-        })
-        .catch((err) => {
-          setError('Nu s-au putut încărca testele');
-          setLoading(false);
-        });
-    }
+        const data = await res.json();
+        const category = data.categories.find(
+          (cat) => cat.id === parseInt(categoryId)
+        );
+
+        if (category) {
+          setQuizzes(category.quizzes);
+          setCategoryName(category.name);
+        } else {
+          setError('Categoria nu a fost găsită');
+        }
+      } catch (err) {
+        setError('Nu s-au putut încărca testele');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (categoryId) fetchCategoryData();
   }, [categoryId]);
 
-  if (loading) {
-    return <div>Se încarcă...</div>;
-  }
-
-  if (error) {
-    return <div>Eroare: {error}</div>;
-  }
+  if (loading) return <div>Se încarcă...</div>;
+  if (error) return <div>Eroare: {error}</div>;
 
   if (!quizzes.length) {
     return (
@@ -61,10 +53,9 @@ export default function CategoryPage() {
     <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-r from-green-400 to-blue-500 text-white">
       <div className="text-center p-10 bg-white rounded-lg shadow-lg text-gray-800 max-w-lg w-full">
         <h1 className="text-4xl font-bold mb-6">Teste pentru categoria {categoryName}</h1>
-        
         <ul className="flex flex-col space-y-4">
           {quizzes.map((quiz) => (
-            <li >
+            <li key={quiz.quiz_id}>
               <Link
                 href={`/quiz/${quiz.quiz_id}`}
                 className="block bg-blue-500 hover:bg-blue-700 text-white font-semibold py-3 px-6 rounded-lg transition duration-300 text-center"
