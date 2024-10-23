@@ -1,0 +1,85 @@
+{
+  "categories": [
+    {
+      "id": 1,
+      "name": "Cultură Generală",
+      "quizzes": [
+        {
+          "quiz_id": 1,
+          "questions": [
+            {
+              "id": 1,
+              "question": "Care este cel mai lung fluviu din Europa?",
+              "options": ["Dunarea", "Volga", "Tisa", "Tamisa"],
+              "answer": "Volga"
+            },
+            {
+              "id": 2,
+              "question": "Cine a pictat celebrul tablou “Mona Lisa”?",
+              "options": ["Leonardo da Vinci", "Vincent van Gogh", "Pablo Picasso", "Claude Monet"],
+              "answer": "Leonardo da Vinci"
+            },
+            {
+              "id": 3,
+              "question": "Cine a fost primul președinte al Statelor Unite ale Americii?",
+              "options": ["George Washington", "Thomas Jefferson", "John Adams", "James Madison"],
+              "answer": "George Washington"
+            }
+          ]
+        },
+        {
+          "quiz_id": 2,
+          "questions": [
+            {
+              "id": 1,
+              "question": "Care este cel mai înalt munte din lume?",
+              "options": ["Mont Blanc", "K2", "Mount Everest", "Kangchenjunga"],
+              "answer": "Mount Everest"
+            },
+            {
+              "id": 2,
+              "question": "Care este capitala Franței?",
+              "options": ["Berlin", "Madrid", "Roma", "Paris"],
+              "answer": "Paris"
+            },
+            {
+              "id": 3,
+              "question": "Cine a scris piesa de teatru “Romeo și Julieta”?",
+              "options": ["William Shakespeare", "Mihai Eminescu", "Ion Luca Caragiale", "George Coșbuc"],
+              "answer": "William Shakespeare"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "name": "Istorie",
+      "quizzes": [
+        {
+          "quiz_id": 3,
+          "questions": [
+            {
+              "id": 1,
+              "question": "În ce an a început al Doilea Război Mondial?",
+              "options": ["1914", "1939", "1945", "1965"],
+              "answer": "1939"
+            },
+            {
+              "id": 2,
+              "question": "Cine a fost primul împărat al Romei?",
+              "options": ["Augustus", "Cezar", "Nero", "Tiberius"],
+              "answer": "Augustus"
+            },
+            {
+              "id": 3,
+              "question": "Cine a fost autorul teoriei relativității?",
+              "options": ["Isaac Newton", "Albert Einstein", "Galileo Galilei", "Nikola Tesla"],
+              "answer": "Albert Einstein"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

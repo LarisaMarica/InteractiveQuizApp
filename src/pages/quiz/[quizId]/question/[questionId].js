@@ -1,56 +1,84 @@
 import { useRouter } from 'next/router';
+import fs from 'fs';
+import path from 'path';
 import Link from 'next/link';
 import { useState, useEffect } from 'react';
 import Question from '@/models/question';
 
-// Array of questions
-const questions = [
-  new Question(
-    1,
-    'Care este cel mai lung fluviu din Europa?',
-    ['Dunarea', 'Volga', 'Tisa', 'Tamisa'],
-    'Volga',
-  ),
-  new Question(
-    2,
-    'Cine a pictat celebrul tablou “Mona Lisa”?',
-    ['Leonardo da Vinci', 'Vincent van Gogh', 'Pablo Picasso', 'Claude Monet'],
-    'Leonardo da Vinci',
-  ),
-  new Question(
-    3,
-    'Cine a fost primul președinte al Statelor Unite ale Americii?',
-    ['George Washington', 'Thomas Jefferson', 'John Adams', 'James Madison'],
-    'George Washington',
-  ),
-];
+export async function getServerSideProps(context) {
+  const filePath = path.join(process.cwd(), 'public', 'questions.json');
+  const jsonData = fs.readFileSync(filePath, 'utf-8');
+  const categoriesJson = JSON.parse(jsonData);
 
-export default function QuestionPage() {
+  const quizId = parseInt(context.params.quizId);
+
+  const category = categoriesJson.categories.find((category) => 
+    category.quizzes.some((quiz) => quiz.quiz_id === quizId)  
+  );
+
+  if (!category) {
+    return {
+      notFound: true,
+    };
+  }
+
+  const quiz = category.quizzes.find((quiz) => quiz.quiz_id === quizId);
+
+  if (!quiz) {
+    return {
+      notFound: true,
+    };
+  }
+  const questions = quiz.questions.map((question) => new Question(
+    question.id,
+    question.question,
+    question.options,
+    question.answer
+  ));
+  const serializedQuestions = questions.map((question) => ({
+    id: question.id,
+    question: question.question,
+    options: question.options,
+    answer: question.answer,
+  }));
+
+  return {
+    props: {
+      quizId,
+      questions: serializedQuestions, 
+    },
+  };
+}
+
+export default function QuestionPage({ quizId, questions }) {
   const router = useRouter();
   const { questionId } = router.query;
 
-  // Find the question using the questionId
   const question = questions.find((q) => q.id === parseInt(questionId));
 
   const [selectedAnswer, setSelectedAnswer] = useState(null);
   const [isAnswered, setIsAnswered] = useState(false);
+  const [score, setScore] = useState(0); 
 
   useEffect(() => {
     setSelectedAnswer(null);
     setIsAnswered(false);
   }, [questionId]);
 
-  // Log the question object to verify if options is an array
-  console.log('Current question:', question);
-
   if (!question) return <p>Întrebarea nu a fost găsită</p>;
 
   const handleAnswerClick = (option) => {
     setSelectedAnswer(option);
     setIsAnswered(true);
+
+    if (option === question.answer) {
+      setScore((prevScore) => prevScore + 1);
+    }
   };
 
   const isCorrect = selectedAnswer === question.answer;
+
+  const isLastQuestion = parseInt(questionId) >= questions.length;
 
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-r from-green-400 to-blue-500 text-white">
@@ -78,22 +106,30 @@ export default function QuestionPage() {
           ))}
         </ul>
 
-        {isAnswered ? (
+        {isAnswered && (
           <div>
             <p className="mb-4">
               {isCorrect ? 'Răspuns corect! 🎉' : `Răspuns greșit! Răspunsul corect este: ${question.answer}`}
             </p>
-            {parseInt(questionId) < questions.length ? (
-              <Link href={`/quiz/1/question/${parseInt(questionId) + 1}`}>
+
+            {!isLastQuestion ? (
+              <Link href={`/quiz/${quizId}/question/${parseInt(questionId) + 1}`}>
                 <button className="bg-blue-500 hover:bg-blue-700 text-white font-semibold py-3 px-6 rounded-lg transition duration-300">
                   Următoarea întrebare
                 </button>
               </Link>
             ) : (
-              <p>Ai terminat testul!</p>
+              <Link href={`/`}>
+                <p className="mt-4">Ai terminat testul!</p>
+                <p className="mt-4">Scorul tău: {score}/{questions.length}</p>
+                <p className="mt-4">{questions.length === score ? 'Felicitări! Ai răspuns corect la toate întrebările! 👏' : 'Mai ai de lucru la aceste întrebări. 🤔'}</p>
+                <button className="bg-blue-500 hover:bg-blue-700 text-white font-semibold py-3 px-6 rounded-lg transition duration-300">
+                  Înapoi acasă
+                </button>
+              </Link>
             )}
           </div>
-        ) : null}
+        )}
       </div>
     </div>
   );

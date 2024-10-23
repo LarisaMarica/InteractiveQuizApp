@@ -1,41 +1,62 @@
 import { useRouter } from 'next/router';
+import fs from 'fs';
+import path from 'path';
 import Link from 'next/link';
 import Quiz from '@/models/quiz';
 import Question from '@/models/question';
 
-const quizzes = [
-  new Quiz(
-    1, 
-    [new Question(1,
-      'Care este cel mai lung fluviu din Europa?',
-      ['Dunarea', 'Volga', 'Tisa', 'Tamisa'],
-      'Volga',
-    ),
-    new Question(2,
-      'Cine a pictat celebrul tablou “Mona Lisa”?',
-      ['Leonardo da Vinci', 'Vincent van Gogh', 'Pablo Picasso', 'Claude Monet'],
-      'Leonardo da Vinci',
-    ),
-    new Question(3,
-      'Cine a fost primul președinte al Statelor Unite ale Americii?',
-      ['George Washington', 'Thomas Jefferson', 'John Adams', 'James Madison'],
-      'George Washington',
-    )],
-    'general-knowledge'),
-]
+export async function getServerSideProps(context) {
+  const categoriesPath = path.join(process.cwd(), 'public', 'questions.json');
+  const jsonData = fs.readFileSync(categoriesPath, 'utf-8');
+  const categoriesJson = JSON.parse(jsonData);
 
-const categoryNames = {
-  'general-knowledge': 'Cultură generală',
-};
+  const categoryId = parseInt(context.params.categoryId); 
 
-export default function CategoryPage() {
-  const router = useRouter();
-  const { categoryId } = router.query;
-  const categoryName = categoryNames[categoryId];
+  const category = categoriesJson.categories.find((category) => category.id === categoryId);
 
-  const categoryQuizzes = quizzes.filter((quiz) => quiz.category === categoryId);
+  if (!category) {
+    return {
+      notFound: true,
+    };
+  }
 
-  if (!categoryQuizzes) {
+  const quizzes = category.quizzes.map((quiz) => {
+    const questions = quiz.questions.map((question) => new Question(
+      question.id,
+      question.question,
+      question.options,
+      question.answer
+    ));
+
+    return new Quiz(quiz.quiz_id, questions, categoryId);
+  });
+
+  const serializedQuizzes = quizzes.map((quiz) => ({
+    id: quiz.id,
+    questions: quiz.questions.map((question) => ({
+      id: question.id,
+      question: question.question,
+      options: question.options,
+      answer: question.answer,
+    })),
+    categoryId: quiz.category,
+  }));
+
+  return {
+    props: {
+      quizzes: serializedQuizzes, 
+      categoryId,
+      categoryName: category.name,
+    },
+  };
+}
+
+
+
+export default function CategoryPage({ quizzes, categoryId, categoryName }) {
+  const categoryQuizzes = quizzes.filter((quiz) => quiz.categoryId === categoryId);
+
+  if (!categoryQuizzes.length) {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-r from-green-400 to-blue-500 text-white">
         <h1 className="text-4xl font-bold">Categoria nu a fost găsită!</h1>
@@ -64,3 +85,4 @@ export default function CategoryPage() {
     </div>
   );
 }
+

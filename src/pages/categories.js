@@ -1,11 +1,29 @@
-import Category from '@/models/category';
+import fs from 'fs';  
+import path from 'path';  
+import Category from '@/models/category'; 
 import Link from 'next/link';
 
-const categories = [
-  new Category('general-knowledge', 'Cultură generală'),
-];
+export const getServerSideProps = async () => {
+  const filePath = path.join(process.cwd(), 'public', 'questions.json');
+  
+  const jsonData = fs.readFileSync(filePath, 'utf-8');
+  const categoriesJson = JSON.parse(jsonData);
 
-export default function Categories() {
+  const categories = categoriesJson.categories.map(category => new Category(category.id, category.name));
+
+  const serializedCategories = categories.map(category => ({
+    id: category.id,
+    name: category.name,
+  }));
+
+  return {
+    props: {
+      categories: serializedCategories, 
+    },
+  };
+};
+
+export default function Categories({ categories }) {
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-r from-green-400 to-blue-500 text-white">
       <div className="text-center p-10 bg-white rounded-lg shadow-lg text-gray-800 max-w-lg w-full">

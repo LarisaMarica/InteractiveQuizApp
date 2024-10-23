@@ -5,10 +5,6 @@ class Question {
         this.options = options;
         this.answer = answer;
     }
-
-    isCorrectAnswer(selected) {
-        return this.answer === selected;
-    }
 }
 
 export default Question;
